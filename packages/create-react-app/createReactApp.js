@@ -1,37 +1,3 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//   /!\ DO NOT MODIFY THIS FILE /!\
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//
-// create-react-app is installed globally on people's computers. This means
-// that it is extremely difficult to have them upgrade the version and
-// because there's only one global version installed, it is very prone to
-// breaking changes.
-//
-// The only job of create-react-app is to init the repository and then
-// forward all the commands to the local version of create-react-app.
-//
-// If you need to add a new command, please add it to the scripts/ folder.
-//
-// The only reason to modify this file is to add more warnings and
-// troubleshooting information for the `create-react-app` command.
-//
-// Do not make breaking changes! We absolutely don't want to have to
-// tell people to update their global version of create-react-app.
-//
-// Also be careful with new language features.
-// This file must work on Node 6+.
-//
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//   /!\ DO NOT MODIFY THIS FILE /!\
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 'use strict';
 
 const validateProjectName = require('validate-npm-package-name');
@@ -173,6 +139,7 @@ const hiddenProgram = new commander.Command()
   )
   .parse(process.argv);
 
+// 开始创建
 createApp(
   projectName,
   program.verbose,
@@ -185,8 +152,10 @@ function createApp(name, verbose, version, useNpm, template) {
   const root = path.resolve(name);
   const appName = path.basename(root);
 
-  checkAppName(appName);
-  fs.ensureDirSync(name);
+  checkAppName(appName); // 检查传入的项目名是否合法
+  fs.ensureDirSync(name); // 来自node-fs-extra,确定文件存在，如果不存在就创建
+  // 到这里为止，创建好了文件夹
+
   if (!isSafeToCreateProjectIn(root, name)) {
     process.exit(1);
   }
@@ -199,14 +168,15 @@ function createApp(name, verbose, version, useNpm, template) {
     version: '0.1.0',
     private: true,
   };
+  // 开始写入创建package.json并且写入内容
   fs.writeFileSync(
     path.join(root, 'package.json'),
     JSON.stringify(packageJson, null, 2) + os.EOL
   );
 
   const useYarn = useNpm ? false : shouldUseYarn(root);
-  const originalDirectory = process.cwd();
-  process.chdir(root);
+  const originalDirectory = process.cwd(); // 获取当前目录
+  process.chdir(root); // 修改当前目录
   if (!useYarn && !checkThatNpmCanReadCwd()) {
     process.exit(1);
   }
@@ -254,10 +224,14 @@ function shouldUseYarn(appDir) {
   return (mono.isYarnWs && mono.isAppIncluded) || isYarnAvailable();
 }
 
+/**
+ * 安装依赖方法
+ */
 function install(root, useYarn, dependencies, verbose, isOnline) {
   return new Promise((resolve, reject) => {
     let command;
     let args;
+    // 如果用yarn，拼接yarn命令
     if (useYarn) {
       command = 'yarnpkg';
       args = ['add', '--exact'];
@@ -294,6 +268,7 @@ function install(root, useYarn, dependencies, verbose, isOnline) {
       args.push('--verbose');
     }
 
+    // spawn是跨平台处理的命令控制，执行拼好的命令，成功后返回
     const child = spawn(command, args, { stdio: 'inherit' });
     child.on('close', code => {
       if (code !== 0) {
@@ -307,6 +282,10 @@ function install(root, useYarn, dependencies, verbose, isOnline) {
   });
 }
 
+/**
+ * 到这里之前，创建好了文件夹和package.json
+ * 下面来安装依赖和复制模板
+ */
 function run(
   root,
   appName,
@@ -320,6 +299,7 @@ function run(
   const allDependencies = ['react', 'react-dom', packageToInstall];
 
   console.log('Installing packages. This might take a couple of minutes.');
+  // 安装
   getPackageName(packageToInstall)
     .then(packageName =>
       checkIfOnline(useYarn).then(isOnline => ({
@@ -337,6 +317,7 @@ function run(
       );
       console.log();
 
+      // 进入安装方法
       return install(root, useYarn, allDependencies, verbose, isOnline).then(
         () => packageName
       );
@@ -352,6 +333,8 @@ function run(
         'scripts',
         'init.js'
       );
+      
+      // 到这里，安装依赖也完成了，开始复制模板
       const init = require(scriptsPath);
       init(root, appName, verbose, originalDirectory, template);
 
